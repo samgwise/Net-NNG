@@ -1,0 +1,19 @@
+{
+  "authors" : [
+    "Sam Gillespie"
+  ],
+  "build-depends" : [ ],
+  "depends" : [ ],
+  "description" : "NanoMSG networking with libnng",
+  "license" : "Artistic-2.0",
+  "name" : "Net::NNG",
+  "perl" : "6.c",
+  "provides" : {
+    "Net::NNG" : "lib/Net/NNG.pm6"
+  },
+  "resources" : [ ],
+  "source-url" : "",
+  "tags" : [ ],
+  "test-depends" : [ ],
+  "version" : "0.0.1"
+}
