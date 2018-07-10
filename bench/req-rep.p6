@@ -41,20 +41,20 @@ my $inet-server = start {
 }
 
 
-my $message = 'Benchmark this!'.encode('utf8');
-
-$b.cmpthese(1000, {
-    nng-req-rep => sub {
-        nng-send $req-sock, $message;
-        nng-recv $req-sock
-    },
-    socket-inet => sub {
-        my $conn = IO::Socket::INET.new( :host<localhost>, :port(3333), :bin );
-        $conn.write: $message;
-        $conn.recv;
-        $conn.close;
-    }
-});
+for ('a', 'Benchmark this!', 'bcdefg' x 128, 'abcdefgh' x 1024).map( *.encode: 'utf8' ) -> $message {
+    $b.cmpthese( max(round(10000 ÷ $message.elems), 10), {
+        "nng-req-rep({ $message.elems })" => sub {
+            nng-send $req-sock, $message;
+            nng-recv $req-sock
+        },
+        "socket-inet({ $message.elems })" => sub {
+            my $conn = IO::Socket::INET.new( :host<localhost>, :port(3333), :bin );
+            $conn.write: $message;
+            $conn.recv;
+            $conn.close;
+        }
+    });
+}
 
 # Cleanup
 ($req-sock, $rep-sock)

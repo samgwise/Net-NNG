@@ -106,15 +106,6 @@ class NNGSocket is repr<CStruct> {
     has uint32 $.id;
 }
 
-# A brief hack to pack nng id structs for pass by value
-sub pack-struct($struct) is export {
-    given nativesizeof($struct) {
-        when 4 { nativecast(int32, $struct) }
-        when 8 { nativecast(int64, $struct) }
-        default { fail "Unhandled struct size of $_ bytes"}
-    }
-}
-
 # const char * nng_strerror(int err);
 sub nng_strerror(int32) returns Str is encoded<utf8> is native<nng> { * }
 
@@ -122,7 +113,7 @@ sub nng_strerror(int32) returns Str is encoded<utf8> is native<nng> { * }
 sub nng_close(int32) returns int64 is native { * }
 
 sub nng-close(NNGSocket $socket --> Bool) is export {
-    given nng_close(pack-struct $socket) {
+    given nng_close($socket.id) {
         when 0 { True }
         default { fail "Failed to close socket: { .&nng_strerror }" }
     }
@@ -144,7 +135,7 @@ constant NNG_OPT_SUB_UNSUBSCRIBE = "sub:unsubscribe";
 # Set an active subscription on a socket
 sub nng-subscribe(NNGSocket $socket, Str $header) is export {
     my $value = $header.encode('utf8');
-    given nng_setopt(pack-struct($socket), NNG_OPT_SUB_SUBSCRIBE, nativecast(Pointer[void], $value), $value.elems) {
+    given nng_setopt($socket.id, NNG_OPT_SUB_SUBSCRIBE, nativecast(Pointer[void], $value), $value.elems) {
         when 0 { True }
         default { fail "Unable to subscribe to $value ({ .&nng_strerror })" }
     }
@@ -203,7 +194,7 @@ sub nng_listen(int32, Str is encoded<utf8>, NNGListener is rw, int64) returns in
 # Start listening on a socket.
 # returns True or Failure
 our sub nng-listen(NNGSocket $socket, Str $url --> Bool) is export {
-    given nng_listen(pack-struct($socket), $url, void, 0) {
+    given nng_listen($socket.id, $url, void, 0) {
         when 0 { True }
         default { fail "Failed creating listener on socket for url: $url ({ .&nng_strerror })"}
     }
@@ -213,7 +204,7 @@ our sub nng-listen(NNGSocket $socket, Str $url --> Bool) is export {
 sub nng_dial(int32, Str is encoded<utf8>, NNGDialer is rw, int64) returns int64 is native<nng> { * }
 
 sub nng-dial(NNGSocket $socket, Str $url --> Bool) is export {
-    given nng_dial(pack-struct($socket), $url, void, 0) {
+    given nng_dial($socket.id, $url, void, 0) {
         when 0 { True }
         default { fail "Failed dialing on socket for url: $url ({ .&nng_strerror })" }
     }
@@ -224,10 +215,10 @@ sub nng_recv(int32 $s, Pointer $data is rw, uint64 $size is rw, int64 $flasgs) r
 
 #! Receives messages on a listener socket.
 sub nng-recv(NNGSocket:D $socket --> Blob) is export {
-    given nng_recv(pack-struct($socket), my Pointer[Pointer] $data .= new, my uint64 $body-size, NNG_FLAG_ALLOC) {
+    given nng_recv($socket.id, my Pointer[Pointer] $data .= new, my uint64 $body-size, NNG_FLAG_ALLOC) {
         when 0 {
             my $body = nativecast(CArray[byte], $data.deref);
-            my $buffer = Blob.new: do for 0..^$body-size { $body[$_] };
+            my $buffer = Blob.new: do for 0..^$body-size { $body.AT-POS($_) };
             nng_free($data.deref, $body-size);
             $buffer
         }
@@ -240,7 +231,7 @@ sub nng_send(int32, CArray[byte] is rw, uint64, int64) returns int64 is native<n
 
 sub nng-send(NNGSocket:D $socket, Blob $message --> Bool) is export {
     my uint64 $size = $message.elems;
-    given nng_send(pack-struct($socket), nativecast(CArray[byte], $message), $size, 0) {
+    given nng_send($socket.id, nativecast(CArray[byte], $message), $size, 0) {
         when 0 { True }
         default {
             fail "Failed sending message: { .&nng_strerror }"

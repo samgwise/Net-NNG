@@ -12,7 +12,7 @@
     "Net::NNG" : "lib/Net/NNG.pm6"
   },
   "resources" : [ ],
-  "source-url" : "",
+  "source-url" : "https://github.com/samgwise/Net-NNG.git",
   "tags" : [ ],
   "test-depends" : [ ],
   "version" : "0.0.1"
