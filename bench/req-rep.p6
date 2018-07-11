@@ -41,8 +41,8 @@ my $inet-server = start {
 }
 
 
-for ('a', 'Benchmark this!', 'bcdefg' x 128, 'abcdefgh' x 1024).map( *.encode: 'utf8' ) -> $message {
-    $b.cmpthese( max(round(10000 ÷ $message.elems), 10), {
+for ('a', 'Benchmark this!', 'bcdefg' x 128, 'abcdefgh' x 1024, 'ijklmnop' x 8192).map( *.encode: 'utf8' ) -> $message {
+    $b.cmpthese( 2000, {
         "nng-req-rep({ $message.elems })" => sub {
             nng-send $req-sock, $message;
             nng-recv $req-sock

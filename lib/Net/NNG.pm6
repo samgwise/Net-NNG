@@ -210,6 +210,9 @@ sub nng-dial(NNGSocket $socket, Str $url --> Bool) is export {
     }
 }
 
+#! a memcpy call for nng_recv, enabling us to copy the bytes from nng to a pre-allocated Blob
+sub memcpy_recv(Pointer $dest, Pointer $src, size_t $size --> Pointer) is native is symbol('memcpy') { * }
+
 # int nng_recv(nng_socket s, void *, size_t *, int);
 sub nng_recv(int32 $s, Pointer $data is rw, uint64 $size is rw, int64 $flasgs) returns int64 is native<nng> { * }
 
@@ -217,12 +220,14 @@ sub nng_recv(int32 $s, Pointer $data is rw, uint64 $size is rw, int64 $flasgs) r
 sub nng-recv(NNGSocket:D $socket --> Blob) is export {
     given nng_recv($socket.id, my Pointer[Pointer] $data .= new, my uint64 $body-size, NNG_FLAG_ALLOC) {
         when 0 {
-            my $body = nativecast(CArray[byte], $data.deref);
-            my $buffer = Blob.new: do for 0..^$body-size { $body.AT-POS($_) };
+            #my $body = nativecast(CArray[byte], $data.deref);
+            #my $buffer = Blob.new: do for 0..^$body-size { $body.AT-POS($_) };
+            my Blob $buffer .= allocate($body-size);
+            memcpy_recv(nativecast(Pointer, $buffer), $data.deref, $body-size);
             nng_free($data.deref, $body-size);
             $buffer
         }
-        default { fail "Failed recieving on socket: { .&nng_strerror }" }
+        default { fail "Failed receiving on socket: { .&nng_strerror }" }
     }
 }
 
