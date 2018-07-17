@@ -9,7 +9,8 @@
   "name" : "Net::NNG",
   "perl" : "6.c",
   "provides" : {
-    "Net::NNG" : "lib/Net/NNG.pm6"
+    "Net::NNG" : "lib/Net/NNG.pm6",
+    "Net::NNG::Options" : "lib/Net/NNG/Options.pm6"
   },
   "resources" : [ ],
   "source-url" : "https://github.com/samgwise/Net-NNG.git",

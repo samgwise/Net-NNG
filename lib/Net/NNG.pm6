@@ -2,6 +2,8 @@ use v6.c;
 unit module Net::NNG:ver<0.0.1>;
 use NativeCall;
 
+use Net::NNG::Options;
+
 =begin pod
 
 =head1 NAME
@@ -125,8 +127,58 @@ sub nng_free(Pointer, uint64) is native<nng> { * }
 # void *nng_alloc(size_t size);
 sub nng_alloc(uint64) returns Pointer[void] is native<nng> { * }
 
+#
+# Socket options
+#
+
 # int nng_setopt(nng_socket s, const char *opt, const void *val, size_t valsz);
-sub nng_setopt(int32, Str, Pointer, uint64) returns uint64 is native<nng> { * }
+sub nng_setopt(int32, Str, Pointer, uint64) returns int64 is native<nng> { * }
+
+#int nng_setopt_bool(nng_socket s, const char *opt, int bval);
+sub nng_setopt_bool(int32, Str, uint8) returns int64 is native<nng> { * }
+
+# int nng_setopt_int(nng_socket s, const char *opt, int ival);
+sub nng_setopt_int(int32, Str, int64) returns int64 is native<nng> { * }
+
+# int nng_setopt_ms(nng_socket s, const char *opt, nng_duration dur);
+sub nng_setopt_ms(int32, Str, int32) returns int64 is native<nng> { * }
+
+# int nng_setopt_ptr(nng_socket s, const char *opt, void *ptr);
+
+# int nng_setopt_size(nng_socket s, const char *opt, size_t z);
+
+# int nng_setopt_string(nng_socket s, const char *opt, const char *str);
+
+# int nng_setopt_uint64(nng_socket s, const char *opt, uint64_t u64);
+sub nng_setopt_uint64(int32, Str, uint64) returns int64 is native<nng> { * }
+
+sub set-opt-check-error(int64 $error-code --> Bool) {
+
+}
+
+# Set an NNG::Option for a socket
+multi sub nng-setopt(NNGSocket $socket, Str $name, Str $value) is export {
+    my $packed-value = $value.encode('utf8');
+
+    given nng_setopt($socket.id, $name, nativecast(Pointer[void], $packed-value), $packed-value.elems) {
+        when 0 { True }
+        default { fail "Unable to set option $name to $value ({ .&nng_strerror })" }
+    }
+}
+
+multi sub nng-setopt(NNGSocket $socket, Str $name, Bool $value) is export {
+    given nng_setopt_bool($socket.id, $name, $value) {
+        when 0 { True }
+        default { fail "Unable to set option $name to $value ({ .&nng_strerror })" }
+    }
+}
+
+multi sub nng-setopt(NNGSocket $socket, Str $name, Int $value, Bool :$ms = False) is export {
+    given $ms ?? nng_setopt_ms($socket.id, $name, $value) !! nng_setopt_int($socket.id, $name, $value) {
+        when 0 { True }
+        default { fail "Unable to set option $name to $value ({ .&nng_strerror })" }
+    }
+}
 
 # Constants from src/protocol/pubsub0/sub.h
 constant NNG_OPT_SUB_SUBSCRIBE = "sub:subscribe";
