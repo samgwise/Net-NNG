@@ -180,6 +180,10 @@ multi sub nng-setopt(NNGSocket $socket, Str $name, Int $value, Bool :$ms = False
     }
 }
 
+#
+# Pub/Sub
+#
+
 # Constants from src/protocol/pubsub0/sub.h
 constant NNG_OPT_SUB_SUBSCRIBE = "sub:subscribe";
 constant NNG_OPT_SUB_UNSUBSCRIBE = "sub:unsubscribe";
@@ -219,7 +223,7 @@ our sub nng-rep0-open( --> NNGSocket) is export {
 }
 
 # int nng_pub0_open(nng_socket *s);
-sub nng_pub0_open(NNGSocket is rw) returns uint64 is native<nng> { * }
+sub nng_pub0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 
 sub nng-pub0-open( --> NNGSocket) is export {
     my $socket = NNGSocket.new(id => 0);
@@ -230,7 +234,7 @@ sub nng-pub0-open( --> NNGSocket) is export {
 }
 
 # int nng_sub0_open(nng_socket *s);
-sub nng_sub0_open(NNGSocket is rw) returns uint64 is native<nng> { * }
+sub nng_sub0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 
 sub nng-sub0-open( --> NNGSocket) is export {
     my $socket = NNGSocket.new(id => 0);
@@ -239,6 +243,47 @@ sub nng-sub0-open( --> NNGSocket) is export {
         default { fail "Failed creating v0 sub socket: { .&nng_strerror }" }
     }
 }
+
+#
+# Survey
+#
+
+# constant from protocol/survey0/survey.h
+constant NNG_OPT_SURVEYOR_SURVEYTIME = "surveyor:survey-time";
+
+# Set survey duration on a socket
+sub nng-survey-duration(NNGSocket $socket, Int $duration) is export {
+    given nng_setopt_ms($socket.id, NNG_OPT_SURVEYOR_SURVEYTIME, $duration) {
+        when 0 { True }
+        default { fail "Unable to set survey time to $duration ({ .&nng_strerror })" }
+    }
+}
+
+# int nng_surveyor0_open(nng_socket *s);
+sub nng_surveyor0_open(NNGSocket is rw) returns int64 is native<nng> { * }
+
+sub nng-surveyor0-open( --> NNGSocket) is export {
+    my $socket = NNGSocket.new(id => 0);
+    given nng_surveyor0_open($socket) {
+        when 0 { $socket }
+        default { fail "Failed creating v0 respondent socket: { .&nng_strerror }" }
+    }
+}
+
+# int nng_respondent0_open(nng_socket *s);
+sub nng_respondent0_open(NNGSocket is rw) returns int64 is native<nng> { * }
+
+sub nng-respondent0-open( --> NNGSocket) is export {
+    my $socket = NNGSocket.new(id => 0);
+    given nng_respondent0_open($socket) {
+        when 0 { $socket }
+        default { fail "Failed creating v0 respondent socket: { .&nng_strerror }" }
+    }
+}
+
+#
+# Listen and Dial
+#
 
 # int nng_listen(nng_socket, const char *, nng_listener *, int);
 sub nng_listen(int32, Str is encoded<utf8>, NNGListener is rw, int64) returns int64 is native<nng> { * }
@@ -261,6 +306,10 @@ sub nng-dial(NNGSocket $socket, Str $url --> Bool) is export {
         default { fail "Failed dialing on socket for url: $url ({ .&nng_strerror })" }
     }
 }
+
+#
+# Send and Receive
+#
 
 #! a memcpy call for nng_recv, enabling us to copy the bytes from nng to a pre-allocated Blob
 sub memcpy_recv(Pointer $dest, Pointer $src, size_t $size --> Pointer) is native is symbol('memcpy') { * }
