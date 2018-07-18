@@ -27,10 +27,10 @@ my $server = start {
     nng-survey-duration $surveyor, 3000;
     nng-send $surveyor, $message.encode('utf8');
 
-    my @responses = gather loop {
+    my @responses = gather for 1..8 {
         given nng-recv($surveyor) {
             when .so { take .decode('utf8') }
-            default { last }
+            default { $*ERR.say: .gist; last }
         }
     }
 

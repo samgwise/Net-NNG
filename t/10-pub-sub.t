@@ -10,17 +10,10 @@ my $url = 'tcp://127.0.0.1:8886';
 my $header = '/foo';
 my $message = 'Subliminal';
 
+# Start listening on server socket
 nng-listen($pub, $url);
-my $server = start {
-    CATCH { warn "Error in server: { .gist }" }
-    diag 'Publishing';
 
-    for 1..30 {
-        nng-send $pub, "$header$message".encode('utf8');
-        sleep 0.1;
-    }
-}
-
+# Start up clients
 my @clients = do for @subs {
     start {
         CATCH { warn "Error in client: { .gist }" }
@@ -28,6 +21,14 @@ my @clients = do for @subs {
         ok nng-subscribe($_, $header).so, "Subscribed to publisher";
         nng-recv($_).decode('utf8')
     }
+}
+
+# Start server
+my $server = start {
+    CATCH { warn "Error in server: { .gist }" }
+    diag 'Publishing';
+
+    nng-send $pub, "$header$message".encode('utf8');
 }
 
 await Promise.allof: $server, |@clients;
