@@ -64,3 +64,116 @@ Copyright 2018 Sam Gillespie
 
 This library is free software; you can redistribute it and/or modify it under the Artistic License 2.0.
 
+### sub nng-subscribe
+
+```perl6
+sub nng-subscribe(
+    Net::NNG::NNGSocket $socket,
+    Str $header
+) returns Bool
+```
+
+Set an active subscription on a socket You must subscribe with a header to receive messages on subscription socket. The header can be any string and will also be present in the blob of the received message. Returns True on success and a Failure on error.
+
+### sub nng-req0-open
+
+```perl6
+sub nng-req0-open() returns Net::NNG::NNGSocket
+```
+
+Creates a new request (version 0) socket for making requests to a reply socket. Returns a NNGSocket pointer or Failure on error.
+
+### sub nng-rep0-open
+
+```perl6
+sub nng-rep0-open() returns Net::NNG::NNGSocket
+```
+
+Creates a new reply (version 0) socket for responding to requests. Returns a NNGSocket pointer or Failure on error.
+
+### sub nng-pub0-open
+
+```perl6
+sub nng-pub0-open() returns Net::NNG::NNGSocket
+```
+
+Create a new publish (version 0) socket for sending to subscribers. Returns a NNGSocket pointer or failure on error.
+
+### sub nng-sub0-open
+
+```perl6
+sub nng-sub0-open() returns Net::NNG::NNGSocket
+```
+
+Create a new socket for subscribing to a publisher socket. Returns a NNGSocket pointer or failure on error.
+
+### sub nng-survey-duration
+
+```perl6
+sub nng-survey-duration(
+    Net::NNG::NNGSocket $socket,
+    Int $duration
+) returns Bool
+```
+
+Set survey duration on a socket. This function accepts a duration in milliseconds. Returns True on success and a Failure on error.
+
+### sub nng-surveyor0-open
+
+```perl6
+sub nng-surveyor0-open() returns Net::NNG::NNGSocket
+```
+
+Create a new socket for handling survey (version 0) requests. Use nng-listen to attach this socket to a protocol and address.
+
+### sub nng-respondent0-open
+
+```perl6
+sub nng-respondent0-open() returns Net::NNG::NNGSocket
+```
+
+Create a respondent (version 0) socket for replying to surveys. use nng-listen to attach this socket to a protocol and address.
+
+### sub nng-listen
+
+```perl6
+sub nng-listen(
+    Net::NNG::NNGSocket $socket,
+    Str $url
+) returns Bool
+```
+
+Start listening on a socket. Returns True on success or Failure on error. Valid URLs will vary depending on the features your libnng is compiled for. At the time of writing tcp, ipc, among others are supported by default. Additional dependencies are required for secure protocols such as https, wss. Additional dependencies are also required for XeroTier Networking. Check the nng docs for more details.
+
+### sub nng-dial
+
+```perl6
+sub nng-dial(
+    Net::NNG::NNGSocket $socket,
+    Str $url
+) returns Bool
+```
+
+Connects the given socket to a listening socket at the URL provided. Returns True on success and Failure on error. See nng-listen for a discussion of transports.
+
+### sub nng-recv
+
+```perl6
+sub nng-recv(
+    Net::NNG::NNGSocket:D $socket
+) returns Blob
+```
+
+Receives messages on a socket. Returns a Blob of the message on success or a Failure on error.
+
+### sub nng-send
+
+```perl6
+sub nng-send(
+    Net::NNG::NNGSocket:D $socket,
+    Blob $message
+) returns Bool
+```
+
+Sends a Blob with the socket provided. Returns True on success or Failure on error.
+

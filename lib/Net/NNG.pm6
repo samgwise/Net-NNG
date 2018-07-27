@@ -152,11 +152,11 @@ sub nng_setopt_ms(int32, Str, int32) returns int64 is native<nng> { * }
 # int nng_setopt_uint64(nng_socket s, const char *opt, uint64_t u64);
 sub nng_setopt_uint64(int32, Str, uint64) returns int64 is native<nng> { * }
 
-sub set-opt-check-error(int64 $error-code --> Bool) {
+#
+# Internal generalised option setter implimentation
+#
 
-}
-
-# Set an NNG::Option for a socket
+#! Set an NNG::Option for a socket
 multi sub nng-setopt(NNGSocket $socket, Str $name, Str $value) is export {
     my $packed-value = $value.encode('utf8');
 
@@ -188,8 +188,11 @@ multi sub nng-setopt(NNGSocket $socket, Str $name, Int $value, Bool :$ms = False
 constant NNG_OPT_SUB_SUBSCRIBE = "sub:subscribe";
 constant NNG_OPT_SUB_UNSUBSCRIBE = "sub:unsubscribe";
 
-# Set an active subscription on a socket
-sub nng-subscribe(NNGSocket $socket, Str $header) is export {
+our sub nng-subscribe(NNGSocket $socket, Str $header --> Bool) is export {
+    #= Set an active subscription on a socket
+    #= You must subscribe with a header to receive messages on subscription socket.
+    #= The header can be any string and will also be present in the blob of the received message.
+    #= Returns True on success and a Failure on error.
     my $value = $header.encode('utf8');
     given nng_setopt($socket.id, NNG_OPT_SUB_SUBSCRIBE, nativecast(Pointer[void], $value), $value.elems) {
         when 0 { True }
@@ -203,6 +206,9 @@ sub nng_req0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 sub nng_rep0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 
 our sub nng-req0-open( --> NNGSocket) is export {
+    #= Creates a new request (version 0) socket for making requests to a reply socket.
+    #= Returns a NNGSocket pointer or Failure on error.
+
     my $socket = NNGSocket.new(id => 0);
     given nng_req0_open($socket) {
         when 0 { $socket }
@@ -213,6 +219,9 @@ our sub nng-req0-open( --> NNGSocket) is export {
 }
 
 our sub nng-rep0-open( --> NNGSocket) is export {
+    #= Creates a new reply (version 0) socket for responding to requests.
+    #= Returns a NNGSocket pointer or Failure on error.
+
     my $socket = NNGSocket.new(id => 0);
     given nng_rep0_open($socket) {
         when 0 { $socket }
@@ -225,7 +234,10 @@ our sub nng-rep0-open( --> NNGSocket) is export {
 # int nng_pub0_open(nng_socket *s);
 sub nng_pub0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 
-sub nng-pub0-open( --> NNGSocket) is export {
+our sub nng-pub0-open( --> NNGSocket) is export {
+    #= Create a new publish (version 0) socket for sending to subscribers.
+    #= Returns a NNGSocket pointer or failure on error.
+
     my $socket = NNGSocket.new(id => 0);
     given nng_pub0_open($socket) {
         when 0 { $socket }
@@ -236,7 +248,10 @@ sub nng-pub0-open( --> NNGSocket) is export {
 # int nng_sub0_open(nng_socket *s);
 sub nng_sub0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 
-sub nng-sub0-open( --> NNGSocket) is export {
+our sub nng-sub0-open( --> NNGSocket) is export {
+    #= Create a new socket for subscribing to a publisher socket.
+    #= Returns a NNGSocket pointer or failure on error.
+
     my $socket = NNGSocket.new(id => 0);
     given nng_sub0_open($socket) {
         when 0 { $socket }
@@ -251,8 +266,11 @@ sub nng-sub0-open( --> NNGSocket) is export {
 # constant from protocol/survey0/survey.h
 constant NNG_OPT_SURVEYOR_SURVEYTIME = "surveyor:survey-time";
 
-# Set survey duration on a socket
-sub nng-survey-duration(NNGSocket $socket, Int $duration) is export {
+our sub nng-survey-duration(NNGSocket $socket, Int $duration --> Bool) is export {
+    #= Set survey duration on a socket.
+    #= This function accepts a duration in milliseconds.
+    #= Returns True on success and a Failure on error.
+
     given nng_setopt_ms($socket.id, NNG_OPT_SURVEYOR_SURVEYTIME, $duration) {
         when 0 { True }
         default { fail "Unable to set survey time to $duration ({ .&nng_strerror })" }
@@ -262,7 +280,10 @@ sub nng-survey-duration(NNGSocket $socket, Int $duration) is export {
 # int nng_surveyor0_open(nng_socket *s);
 sub nng_surveyor0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 
-sub nng-surveyor0-open( --> NNGSocket) is export {
+our sub nng-surveyor0-open( --> NNGSocket) is export {
+    #= Create a new socket for handling survey (version 0) requests.
+    #= Use nng-listen to attach this socket to a protocol and address.
+
     my $socket = NNGSocket.new(id => 0);
     given nng_surveyor0_open($socket) {
         when 0 { $socket }
@@ -273,7 +294,10 @@ sub nng-surveyor0-open( --> NNGSocket) is export {
 # int nng_respondent0_open(nng_socket *s);
 sub nng_respondent0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 
-sub nng-respondent0-open( --> NNGSocket) is export {
+our sub nng-respondent0-open( --> NNGSocket) is export {
+    #= Create a respondent (version 0) socket for replying to surveys.
+    #= use nng-listen to attach this socket to a protocol and address.
+
     my $socket = NNGSocket.new(id => 0);
     given nng_respondent0_open($socket) {
         when 0 { $socket }
@@ -288,9 +312,15 @@ sub nng-respondent0-open( --> NNGSocket) is export {
 # int nng_listen(nng_socket, const char *, nng_listener *, int);
 sub nng_listen(int32, Str is encoded<utf8>, NNGListener is rw, int64) returns int64 is native<nng> { * }
 
-# Start listening on a socket.
-# returns True or Failure
 our sub nng-listen(NNGSocket $socket, Str $url --> Bool) is export {
+    #= Start listening on a socket.
+    #= Returns True on success or Failure on error.
+    #= Valid URLs will vary depending on the features your libnng is compiled for.
+    #= At the time of writing tcp, ipc, among others are supported by default.
+    #= Additional dependencies are required for secure protocols such as https, wss.
+    #= Additional dependencies are also required for XeroTier Networking.
+    #= Check the nng docs for more details.
+
     given nng_listen($socket.id, $url, void, 0) {
         when 0 { True }
         default { fail "Failed creating listener on socket for url: $url ({ .&nng_strerror })"}
@@ -300,7 +330,11 @@ our sub nng-listen(NNGSocket $socket, Str $url --> Bool) is export {
 # int nng_dial(nng_socket s, const char *url, nng_dialer *dp, int flags);
 sub nng_dial(int32, Str is encoded<utf8>, NNGDialer is rw, int64) returns int64 is native<nng> { * }
 
-sub nng-dial(NNGSocket $socket, Str $url --> Bool) is export {
+our sub nng-dial(NNGSocket $socket, Str $url --> Bool) is export {
+    #= Connects the given socket to a listening socket at the URL provided.
+    #= Returns True on success and Failure on error.
+    #= See nng-listen for a discussion of transports.
+
     given nng_dial($socket.id, $url, void, 0) {
         when 0 { True }
         default { fail "Failed dialing on socket for url: $url ({ .&nng_strerror })" }
@@ -317,8 +351,10 @@ sub memcpy_recv(Pointer $dest, Pointer $src, size_t $size --> Pointer) is native
 # int nng_recv(nng_socket s, void *, size_t *, int);
 sub nng_recv(int32 $s, Pointer $data is rw, uint64 $size is rw, int64 $flasgs) returns int64 is native<nng> { * }
 
-#! Receives messages on a listener socket.
-sub nng-recv(NNGSocket:D $socket --> Blob) is export {
+our sub nng-recv(NNGSocket:D $socket --> Blob) is export {
+    #= Receives messages on a socket.
+    #= Returns a Blob of the message on success or a Failure on error.
+
     given nng_recv($socket.id, my Pointer[Pointer] $data .= new, my uint64 $body-size, NNG_FLAG_ALLOC) {
         when 0 {
             #my $body = nativecast(CArray[byte], $data.deref);
@@ -335,7 +371,10 @@ sub nng-recv(NNGSocket:D $socket --> Blob) is export {
 # int nng_send(nng_socket s, void *data, size_t size, int flags);
 sub nng_send(int32, CArray[byte] is rw, uint64, int64) returns int64 is native<nng> { * }
 
-sub nng-send(NNGSocket:D $socket, Blob $message --> Bool) is export {
+our sub nng-send(NNGSocket:D $socket, Blob $message --> Bool) is export {
+    #= Sends a Blob with the socket provided.
+    #= Returns True on success or Failure on error.
+
     my uint64 $size = $message.elems;
     given nng_send($socket.id, nativecast(CArray[byte], $message), $size, 0) {
         when 0 { True }
