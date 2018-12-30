@@ -28,6 +28,7 @@ Net::NNG - NanoMSG networking with libnng
             for 1..15 -> $client-id {
                 nng-subscribe $sub, "/count";
 
+                # Take the number at the end of the /count message
                 say "Client $client-id: ", nng-recv($sub).tail.decode('utf8')
             }
             nng-close $sub
@@ -49,12 +50,13 @@ Net::NNG - NanoMSG networking with libnng
 
 =head1 DESCRIPTION
 
-Net::NNG is a NativeCall binding for L<libnng|https://github.com/nanomsg/nng> a lightweight implementation of the nanomsg distributed messaging protocol.
+Net::NNG is a NativeCall binding for L<libnng|https://github.com/nanomsg/nng> a lightweight implementation of the nanomsg distributed messaging protocol. By default supported transports are inproc, IPC and IP. Additional transport layers such as TLS, Websockets and ZeroTier can be included when the library is compiled.
 
-This is currently an early release and isn't yet feature complete but provides usable subscribe/publish and request/reply patterns.
-Other patterns currently offered by libnng such as survey and bus patterns are yet to be included in this interface.
+This is currently an early release and isn't yet feature complete but provides usable subscribe/publish, request/reply and survey/responder patterns.
+Other patterns currently offered by libnng such as the bus patterns are yet to be included in this interface.
 
 This module does not yet handle providing you with a libnng library on your system so you will need to either build or install the library yourself.
+If you are compiling from source be sure to provide the -DBUILD_SHARED_LIBS option when building the cmake project else you will only be build static objects.
 
 =head1 AUTHOR
 
@@ -134,7 +136,7 @@ sub nng_alloc(uint64) returns Pointer[void] is native<nng> { * }
 # int nng_setopt(nng_socket s, const char *opt, const void *val, size_t valsz);
 sub nng_setopt(int32, Str, Pointer, uint64) returns int64 is native<nng> { * }
 
-#int nng_setopt_bool(nng_socket s, const char *opt, int bval);
+# int nng_setopt_bool(nng_socket s, const char *opt, int bval);
 sub nng_setopt_bool(int32, Str, uint8) returns int64 is native<nng> { * }
 
 # int nng_setopt_int(nng_socket s, const char *opt, int ival);
@@ -153,11 +155,14 @@ sub nng_setopt_ms(int32, Str, int32) returns int64 is native<nng> { * }
 sub nng_setopt_uint64(int32, Str, uint64) returns int64 is native<nng> { * }
 
 #
-# Internal generalised option setter implimentation
+# Internal generalised option setter implementation
 #
 
 #! Set an NNG::Option for a socket
+our proto nng-setopt(NNGSocket $socket, Str $name, |) {*}
+
 multi sub nng-setopt(NNGSocket $socket, Str $name, Str $value) is export {
+    #= Set a string option for a socket.
     my $packed-value = $value.encode('utf8');
 
     given nng_setopt($socket.id, $name, nativecast(Pointer[void], $packed-value), $packed-value.elems) {
@@ -167,6 +172,7 @@ multi sub nng-setopt(NNGSocket $socket, Str $name, Str $value) is export {
 }
 
 multi sub nng-setopt(NNGSocket $socket, Str $name, Bool $value) is export {
+    #= Set a boolean option for a socket.
     given nng_setopt_bool($socket.id, $name, $value) {
         when 0 { True }
         default { fail "Unable to set option $name to $value ({ .&nng_strerror })" }
@@ -174,6 +180,8 @@ multi sub nng-setopt(NNGSocket $socket, Str $name, Bool $value) is export {
 }
 
 multi sub nng-setopt(NNGSocket $socket, Str $name, Int $value, Bool :$ms = False) is export {
+    #= Set an integer value for an option on a socket.
+    #= If the option is a millisecond value, passing the named ms flag.
     given $ms ?? nng_setopt_ms($socket.id, $name, $value) !! nng_setopt_int($socket.id, $name, $value) {
         when 0 { True }
         default { fail "Unable to set option $name to $value ({ .&nng_strerror })" }
@@ -201,7 +209,7 @@ our sub nng-subscribe(NNGSocket $socket, Str $header --> Bool) is export {
 }
 
 # int nng_req0_open(nng_socket *s);
-# return a pointer to ry and match the system int size
+# return a pointer to try and match the system int size
 sub nng_req0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 sub nng_rep0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 
@@ -231,7 +239,7 @@ our sub nng-rep0-open( --> NNGSocket) is export {
     }
 }
 
-# int nng_pub0_open(nng_socket *s);
+#! int nng_pub0_open(nng_socket *s);
 sub nng_pub0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 
 our sub nng-pub0-open( --> NNGSocket) is export {
@@ -245,7 +253,7 @@ our sub nng-pub0-open( --> NNGSocket) is export {
     }
 }
 
-# int nng_sub0_open(nng_socket *s);
+#! int nng_sub0_open(nng_socket *s);
 sub nng_sub0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 
 our sub nng-sub0-open( --> NNGSocket) is export {
@@ -277,7 +285,7 @@ our sub nng-survey-duration(NNGSocket $socket, Int $duration --> Bool) is export
     }
 }
 
-# int nng_surveyor0_open(nng_socket *s);
+#! int nng_surveyor0_open(nng_socket *s);
 sub nng_surveyor0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 
 our sub nng-surveyor0-open( --> NNGSocket) is export {
@@ -291,7 +299,7 @@ our sub nng-surveyor0-open( --> NNGSocket) is export {
     }
 }
 
-# int nng_respondent0_open(nng_socket *s);
+#! int nng_respondent0_open(nng_socket *s);
 sub nng_respondent0_open(NNGSocket is rw) returns int64 is native<nng> { * }
 
 our sub nng-respondent0-open( --> NNGSocket) is export {
@@ -309,7 +317,7 @@ our sub nng-respondent0-open( --> NNGSocket) is export {
 # Listen and Dial
 #
 
-# int nng_listen(nng_socket, const char *, nng_listener *, int);
+#! int nng_listen(nng_socket, const char *, nng_listener *, int);
 sub nng_listen(int32, Str is encoded<utf8>, NNGListener is rw, int64) returns int64 is native<nng> { * }
 
 our sub nng-listen(NNGSocket $socket, Str $url --> Bool) is export {
@@ -327,7 +335,7 @@ our sub nng-listen(NNGSocket $socket, Str $url --> Bool) is export {
     }
 }
 
-# int nng_dial(nng_socket s, const char *url, nng_dialer *dp, int flags);
+#! int nng_dial(nng_socket s, const char *url, nng_dialer *dp, int flags);
 sub nng_dial(int32, Str is encoded<utf8>, NNGDialer is rw, int64) returns int64 is native<nng> { * }
 
 our sub nng-dial(NNGSocket $socket, Str $url --> Bool) is export {
@@ -348,7 +356,7 @@ our sub nng-dial(NNGSocket $socket, Str $url --> Bool) is export {
 #! a memcpy call for nng_recv, enabling us to copy the bytes from nng to a pre-allocated Blob
 sub memcpy_recv(Pointer $dest, Pointer $src, size_t $size --> Pointer) is native is symbol('memcpy') { * }
 
-# int nng_recv(nng_socket s, void *, size_t *, int);
+#! int nng_recv(nng_socket s, void *, size_t *, int);
 sub nng_recv(int32 $s, Pointer $data is rw, uint64 $size is rw, int64 $flasgs) returns int64 is native<nng> { * }
 
 our sub nng-recv(NNGSocket:D $socket --> Blob) is export {
@@ -368,7 +376,7 @@ our sub nng-recv(NNGSocket:D $socket --> Blob) is export {
     }
 }
 
-# int nng_send(nng_socket s, void *data, size_t size, int flags);
+#! int nng_send(nng_socket s, void *data, size_t size, int flags);
 sub nng_send(int32, CArray[byte] is rw, uint64, int64) returns int64 is native<nng> { * }
 
 our sub nng-send(NNGSocket:D $socket, Blob $message --> Bool) is export {

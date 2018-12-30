@@ -24,6 +24,7 @@ SYNOPSIS
             for 1..15 -> $client-id {
                 nng-subscribe $sub, "/count";
 
+                # Take the number at the end of the /count message
                 say "Client $client-id: ", nng-recv($sub).tail.decode('utf8')
             }
             nng-close $sub
@@ -46,11 +47,11 @@ SYNOPSIS
 DESCRIPTION
 ===========
 
-Net::NNG is a NativeCall binding for [libnng](https://github.com/nanomsg/nng) a lightweight implementation of the nanomsg distributed messaging protocol.
+Net::NNG is a NativeCall binding for [libnng](https://github.com/nanomsg/nng) a lightweight implementation of the nanomsg distributed messaging protocol. By default supported transports are inproc, IPC and IP. Additional transport layers such as TLS, Websockets and ZeroTier can be included when the library is compiled.
 
-This is currently an early release and isn't yet feature complete but provides usable subscribe/publish and request/reply patterns. Other patterns currently offered by libnng such as survey and bus patterns are yet to be included in this interface.
+This is currently an early release and isn't yet feature complete but provides usable subscribe/publish, request/reply and survey/responder patterns. Other patterns currently offered by libnng such as the bus patterns are yet to be included in this interface.
 
-This module does not yet handle providing you with a libnng library on your system so you will need to either build or install the library yourself.
+This module does not yet handle providing you with a libnng library on your system so you will need to either build or install the library yourself. If you are compiling from source be sure to provide the -DBUILD_SHARED_LIBS option when building the cmake project else you will only be build static objects.
 
 AUTHOR
 ======
@@ -63,6 +64,19 @@ COPYRIGHT AND LICENSE
 Copyright 2018 Sam Gillespie
 
 This library is free software; you can redistribute it and/or modify it under the Artistic License 2.0.
+
+### multi sub nng-setopt
+
+```perl6
+multi sub nng-setopt(
+    Net::NNG::NNGSocket $socket,
+    Str $name,
+    Int $value,
+    Bool :$ms = Bool::False
+) returns Mu
+```
+
+Set an integer value for an option on a socket. If the option is a millisecond value, passing the named ms flag.
 
 ### sub nng-subscribe
 
