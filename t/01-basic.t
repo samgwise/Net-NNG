@@ -5,9 +5,13 @@ use Net::NNG;
 
 use-ok 'Net::NNG';
 use Net::NNG;
+use Net::NNG::Options;
 
 ok (my $rep-socket = nng-rep0-open).&report-fail, "Create NNG rep0 socket";
 ok (my $req-socket = nng-req0-open).&report-fail, "Create NNG req0 socket";
+
+# set timeouts
+ok nng-setopt($_, NNG_OPT_RECVTIMEO, 1000, :ms), "Set receive timeout limit" for $rep-socket, $req-socket;
 
 # Ensure the ids have been set
 ok $rep-socket.id != $req-socket.id, "Socket ids are different";
@@ -30,7 +34,7 @@ my $server = start {
 
 my $message = "Testing, testing, 1, 2, 3";
 nng-send($req-socket, $message.flip.encode('utf8'));
-my $response = nng-recv($req-socket).decode('utf8'); # TODO add timeout
+my $response = nng-recv($req-socket).decode('utf8');
 
 is $response, $message, "Request/Response round trip";
 

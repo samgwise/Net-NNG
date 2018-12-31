@@ -163,6 +163,7 @@ our proto nng-setopt(NNGSocket $socket, Str $name, |) {*}
 
 multi sub nng-setopt(NNGSocket $socket, Str $name, Str $value) is export {
     #= Set a string option for a socket.
+    #= An options enum is defined in Net::NNG::Options.
     my $packed-value = $value.encode('utf8');
 
     given nng_setopt($socket.id, $name, nativecast(Pointer[void], $packed-value), $packed-value.elems) {
@@ -173,6 +174,7 @@ multi sub nng-setopt(NNGSocket $socket, Str $name, Str $value) is export {
 
 multi sub nng-setopt(NNGSocket $socket, Str $name, Bool $value) is export {
     #= Set a boolean option for a socket.
+    #= An options enum is defined in Net::NNG::Options.
     given nng_setopt_bool($socket.id, $name, $value) {
         when 0 { True }
         default { fail "Unable to set option $name to $value ({ .&nng_strerror })" }
@@ -182,6 +184,7 @@ multi sub nng-setopt(NNGSocket $socket, Str $name, Bool $value) is export {
 multi sub nng-setopt(NNGSocket $socket, Str $name, Int $value, Bool :$ms = False) is export {
     #= Set an integer value for an option on a socket.
     #= If the option is a millisecond value, passing the named ms flag.
+    #= An options enum is defined in Net::NNG::Options.
     given $ms ?? nng_setopt_ms($socket.id, $name, $value) !! nng_setopt_int($socket.id, $name, $value) {
         when 0 { True }
         default { fail "Unable to set option $name to $value ({ .&nng_strerror })" }

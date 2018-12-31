@@ -71,12 +71,36 @@ This library is free software; you can redistribute it and/or modify it under th
 multi sub nng-setopt(
     Net::NNG::NNGSocket $socket,
     Str $name,
+    Str $value
+) returns Mu
+```
+
+Set a string option for a socket. An options enum is defined in Net::NNG::Options.
+
+### multi sub nng-setopt
+
+```perl6
+multi sub nng-setopt(
+    Net::NNG::NNGSocket $socket,
+    Str $name,
+    Bool $value
+) returns Mu
+```
+
+Set a boolean option for a socket. An options enum is defined in Net::NNG::Options.
+
+### multi sub nng-setopt
+
+```perl6
+multi sub nng-setopt(
+    Net::NNG::NNGSocket $socket,
+    Str $name,
     Int $value,
     Bool :$ms = Bool::False
 ) returns Mu
 ```
 
-Set an integer value for an option on a socket. If the option is a millisecond value, passing the named ms flag.
+Set an integer value for an option on a socket. If the option is a millisecond value, passing the named ms flag. An options enum is defined in Net::NNG::Options.
 
 ### sub nng-subscribe
 
